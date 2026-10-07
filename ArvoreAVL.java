@@ -62,7 +62,7 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
                         this.mudouAltura = true;  // Continua propagando
                         break;
                     case 1:
-                        // FB iria para +2 (desbalanceamento)
+                        atual.fb = 2;             // Desbalanceou à esquerda!
                         atual = balancearEsquerda(atual);
                         this.mudouAltura = false; // Após rotação na inserção, altura volta à original: pare
                         break;
@@ -82,7 +82,7 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
                         this.mudouAltura = true;  // Continua propagando
                         break;
                     case -1:
-                        // FB iria para -2 (desbalanceamento)
+                        atual.fb = -2;            // Desbalanceou à direita!
                         atual = balancearDireita(atual);
                         this.mudouAltura = false; // Após rotação na inserção, altura volta à original: pare
                         break;
@@ -97,7 +97,7 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
     }
 
     /**
-     * Trata o desbalanceamento após inserção ou remoção na subárvore esquerda (FB iria para +2).
+     * Trata o desbalanceamento após inserção ou remoção na subárvore esquerda (FB = +2).
      * Regra do slide do Prof. Robinson Alves:
      * - Se FB >= 0 na subárvore esquerda: Rotação Simples a Direita (RSD)
      * - Se FB < 0 na subárvore esquerda: Rotação Dupla a Direita (RDD)
@@ -112,7 +112,7 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
     }
 
     /**
-     * Trata o desbalanceamento após inserção ou remoção na subárvore direita (FB iria para -2).
+     * Trata o desbalanceamento após inserção ou remoção na subárvore direita (FB = -2).
      * Regra do slide do Prof. Robinson Alves:
      * - Se FB <= 0 na subárvore direita: Rotação Esquerda Simples (RES)
      * - Se FB > 0 na subárvore direita: Rotação Dupla a Esquerda (RDE)
@@ -141,7 +141,7 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
      * 1. Guarde a subárvore direita (A).
      * 2. Troque a subárvore guardada pela subárvore esquerda da árvore guardada (B.direito = A.esquerdo).
      * 3. Ponha na subárvore esquerda da subárvore guardada a árvore restante (A.esquerdo = B).
-     * 4. Atualize o FB pelas fórmulas:
+     * 4. Atualize o FB pelas fórmulas dos slides:
      *      FB_B_novo = FB_B + 1 - min(FB_A, 0);
      *      FB_A_novo = FB_A + 1 + max(FB_B_novo, 0);
      *
@@ -153,14 +153,9 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
         B.direito = A.esquerdo;
         A.esquerdo = B;
 
-        // Se B.fb estava em -1 no momento da detecção de aumento à direita,
-        // o valor efetivo antes da rotação é -2.
-        int FB_B = (B.fb == -1) ? -2 : B.fb;
-        int FB_A = A.fb;
-
         // Fórmulas exatas do slide do Prof. Robinson Alves:
-        int FB_B_novo = FB_B + 1 - Math.min(FB_A, 0);
-        int FB_A_novo = FB_A + 1 + Math.max(FB_B_novo, 0);
+        int FB_B_novo = B.fb + 1 - Math.min(A.fb, 0);
+        int FB_A_novo = A.fb + 1 + Math.max(FB_B_novo, 0);
 
         B.fb = FB_B_novo;
         A.fb = FB_A_novo;
@@ -191,12 +186,9 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
         B.esquerdo = A.direito;
         A.direito = B;
 
-        int FB_B = (B.fb == 1) ? 2 : B.fb;
-        int FB_A = A.fb;
-
         // Fórmulas exatas do slide do Prof. Robinson Alves:
-        int FB_B_novo = FB_B - 1 - Math.max(FB_A, 0);
-        int FB_A_novo = FB_A - 1 + Math.min(FB_B_novo, 0);
+        int FB_B_novo = B.fb - 1 - Math.max(A.fb, 0);
+        int FB_A_novo = A.fb - 1 + Math.min(FB_B_novo, 0);
 
         B.fb = FB_B_novo;
         A.fb = FB_A_novo;
@@ -306,7 +298,7 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
                 this.mudouAltura = false; // "Se FB(Vantecessor) != 0 pare"
                 break;
             case -1:
-                // FB iria para -2: desbalanceou à direita
+                atual.fb = -2;            // Desbalanceou à direita!
                 NoAVL dir = (NoAVL) atual.direito;
                 if (dir.fb <= 0) {
                     // FB <= 0 na subárvore direita: RES
@@ -337,7 +329,7 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
                 this.mudouAltura = false; // "Se FB(Vantecessor) != 0 pare"
                 break;
             case 1:
-                // FB iria para +2: desbalanceou à esquerda
+                atual.fb = 2;             // Desbalanceou à esquerda!
                 NoAVL esq = (NoAVL) atual.esquerdo;
                 if (esq.fb >= 0) {
                     // FB >= 0 na subárvore esquerda: RSD
