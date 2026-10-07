@@ -19,8 +19,6 @@ KEYWORDS = {
 
 def highlight_java_line(line):
     runs = []
-    # Simple regex tokenizer for Java code lines
-    # Tokens: comments, strings, words/identifiers, symbols/whitespace
     token_spec = [
         ('COMMENT', r'//.*'),
         ('STRING',  r'"([^"\\]|\\.)*"'),
@@ -30,7 +28,6 @@ def highlight_java_line(line):
     ]
     tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_spec)
     
-    pos = 0
     for mo in re.finditer(tok_regex, line):
         kind = mo.lastgroup
         val = mo.group()
@@ -63,7 +60,6 @@ def format_code_block(code_text):
     in_block_comment = False
     for line in code_text.splitlines():
         p_runs = []
-        
         stripped = line.strip()
         if in_block_comment:
             p_runs.append((line, "3F7F5F", False, True))
@@ -151,7 +147,6 @@ def make_callout(text, title=""):
     </w:p>"""
 
 def build_docx(output_path):
-    # Read Java files
     files = ["NoABP.java", "ArvoreBinariaPesquisa.java", "NoAVL.java", "ArvoreAVL.java", "Main.java"]
     codes = {}
     for f in files:
@@ -208,132 +203,131 @@ def build_docx(output_path):
           <w:sz w:val="22"/>
           <w:color w:val="595959"/>
         </w:rPr>
-        <w:t>Autora: Larissa Samara | Linguagem: Java | Complexidade: O(log n)</w:t>
+        <w:t>Aluna: Larissa Samara | Professor: Robinson Alves | Material: árvoreAVL.pdf</w:t>
       </w:r>
     </w:p>""")
 
-    # Section 1: Apresentação Teórica e Fórmulas
-    body_parts.append(make_heading("1. Fundamentação Teórica e Fórmulas de Recálculo", 1))
+    # Section 1: Fundamentação e Fórmulas do Slide
+    body_parts.append(make_heading("1. Fundamentação Teórica e Fórmulas de Aula (Prof. Robinson Alves)", 1))
     body_parts.append(make_paragraph(
-        "A Árvore AVL é uma árvore binária de pesquisa autobalanceada em que a diferença entre as alturas das subárvores esquerda e direita de qualquer nó (denominada Fator de Balanceamento - FB) é de no máximo 1 em valor absoluto. Isso garante que a altura máxima da árvore seja h <= 1,44 * log2(n), conferindo complexidade estritamente O(log n) para as operações básicas de busca, inclusão e remoção."
-    ))
-
-    body_parts.append(make_callout(
-        "FB(u) = altura(subárvore esquerda) - altura(subárvore direita). Portanto, valores positivos indicam que a esquerda é mais alta (+1), zero indica equilíbrio perfeito (0), e valores negativos indicam que a direita é mais alta (-1). Desbalanceamentos ocorrem quando FB atinge +2 ou -2.",
-        "Definição do Fator de Balanceamento"
-    ))
-
-    body_parts.append(make_paragraph(
-        "Conforme solicitado na especificação da disciplina, para garantir que as rotações executem estritamente em tempo constante O(1) sem necessidade de recalcular alturas a partir das folhas, foram empregadas as fórmulas deduzidas em aula:"
-    ))
-
-    body_parts.append(make_callout(
-        "FB'(A) = FB(A) + 1 - min(FB(B), 0)\nFB'(B) = FB(B) + 1 + max(FB'(A), 0)",
-        "Fórmulas para Rotação Simples para a Esquerda (S.E.)"
-    ))
-
-    body_parts.append(make_callout(
-        "FB'(A) = FB(A) - 1 - max(FB(B), 0)\nFB'(B) = FB(B) - 1 + min(FB'(A), 0)",
-        "Fórmulas para Rotação Simples para a Direita (S.D.)"
-    ))
-
-    # Section 2: Detalhamento dos Casos do Exemplo
-    body_parts.append(make_heading("2. Detalhamento Passo a Passo do Exemplo da Especificação", 1))
-
-    body_parts.append(make_heading("2.1 Inserções Iniciais e Inserção do Nó 25 (Rotação S.E. em 15)", 2))
-    body_parts.append(make_paragraph(
-        "Inicialmente, inserem-se as chaves 10, 5, 15, 2, 8, 22. A árvore resultante apresenta equilíbrio em todos os nós, com exceção do nó 15 que possui FB = -1 devido ao seu filho direito 22."
-    ))
-    body_parts.append(make_paragraph(
-        "Ao inserir a chave 25, ela é posicionada como filha à direita do nó 22. No retorno da recursão (backtracking):",
-        "Propagação do desbalanceamento:"
-    ))
-    body_parts.append(make_paragraph(
-        "- O nó 22 tem sua subárvore direita acrescida de altura: seu FB passa de 0 para -1.\n"
-        "- O nó 15, que já possuía FB = -1, recebe a propagação do aumento de altura da subárvore direita: seu FB atinge -2 (desbalanceamento detectado à direita).\n"
-        "- Como os sinais de FB(15) = -2 e FB(22) = -1 são concordantes (ambos negativos), aplica-se a Rotação Simples para a Esquerda (S.E.) com pivô no nó 15."
+        "Conforme apresentado nos slides do Prof. Robinson Alves (árvoreAVL.pdf), a Árvore AVL mantém o equilíbrio rigoroso através do Fator de Balanceamento (FB) calculado para cada nó v como:"
     ))
     body_parts.append(make_callout(
-        "FB'(15) = -2 + 1 - min(-1, 0) = -2 + 1 - (-1) = 0\n"
-        "FB'(22) = -1 + 1 + max(0, 0) = 0\n"
-        "Resultado: O nó 22 torna-se a nova raiz da subárvore com 15 à esquerda e 25 à direita, ambos com FB = 0.",
-        "Aplicação das Fórmulas de Recálculo em S.E."
+        "FB(v) = he(v) - hd(v)\n"
+        " +1 : subárvore esquerda mais alta que a direita\n"
+        "  0 : subárvore esquerda igual a direita\n"
+        " -1 : subárvore direita mais alta do que a esquerda\n"
+        "Valores balanceados: -1, 0 ou 1. Nós desregulados: FB > 1 ou FB < -1.",
+        "Definição do Fator de Balanceamento (Slide do Prof. Robinson)"
     ))
 
-    body_parts.append(make_heading("2.2 Remoção do Nó 5 e Substituição pelo Sucessor", 2))
     body_parts.append(make_paragraph(
-        "O nó 5 possui dois filhos (2 à esquerda e 8 à direita). Pela regra clássica de ABP/AVL com 2 filhos, o nó é substituído pelo seu sucessor in-order (o menor elemento da sua subárvore direita, que neste caso é a folha 8):",
-        "Etapas da remoção:"
+        "A tabela a seguir resume as variações de FB e os critérios de parada dos antecessores ensinados na aula:"
+    ))
+    body_parts.append(make_callout(
+        "Inserção: ArvEsq (+1), ArvDir (-1) -> Regra: 'Se FB(Vantecessor) == 0 pare'\n"
+        "Remoção:  ArvEsq (-1), ArvDir (+1) -> Regra: 'Se FB(Vantecessor) != 0 pare'",
+        "Critérios de Parada na Propagação do FB"
+    ))
+
+    body_parts.append(make_paragraph(
+        "Para a reestruturação e recálculo em O(1) dos fatores de balanceamento dos nós B (raiz original da rotação) e A (novo topo da subárvore), o código adota as fórmulas dos slides (baseadas em StackExchange CS #48861):"
+    ))
+    body_parts.append(make_callout(
+        "FB_B_novo = FB_B + 1 - min(FB_A, 0);\n"
+        "FB_A_novo = FB_A + 1 + max(FB_B_novo, 0);",
+        "Rotação Esquerda Simples (RES)"
+    ))
+    body_parts.append(make_callout(
+        "FB_B_novo = FB_B - 1 - max(FB_A, 0);\n"
+        "FB_A_novo = FB_A - 1 + min(FB_B_novo, 0);",
+        "Rotação Simples a Direita (RSD)"
     ))
     body_parts.append(make_paragraph(
-        "1. A chave 8 substitui o valor 5 no nó de destino.\n"
-        "2. O nó original 8 (que era folha) é removido da subárvore direita.\n"
-        "3. Ao remover da subárvore direita do nó 8 recém-alocado, a altura da direita diminui de 1 para 0.\n"
-        "4. Como a subárvore esquerda possui o nó 2 (altura 1), o fator de balanceamento é recalculado: FB(8) = h(esq) - h(dir) = 1 - 0 = +1.\n"
-        "5. A altura total da subárvore enraizada em 8 permaneceu 2 (max(1, 0) + 1 = 2), a mesma que tinha antes da remoção. Consequentemente, a variação de altura NÃO se propaga para a raiz 10, mantendo FB(10) = 0."
+        "As rotações duplas são executadas conforme os passos descritos no slide:\n"
+        "- Rotação Dupla a Esquerda (RDE): RSD na subárvore direita do nó desbalanceado, seguida de RES no nó desbalanceado.\n"
+        "- Rotação Dupla a Direita (RDD): RES na subárvore esquerda do nó desbalanceado, seguida de RSD no nó desbalanceado."
+    ))
+
+    # Section 2: Detalhamento do Exemplo da Especificação
+    body_parts.append(make_heading("2. Detalhamento do Exemplo da Especificação", 1))
+    body_parts.append(make_heading("2.1 Inserção do Nó 25 e Aplicação da RES em 15", 2))
+    body_parts.append(make_paragraph(
+        "Após inserir 10, 5, 15, 2, 8, 22, a árvore possui o nó 15 com FB = -1 devido ao filho direito 22. Ao inserir 25:\n"
+        "1. 25 é alocado à direita de 22. O nó 22 passa para FB = -1.\n"
+        "2. O aumento propaga para o nó 15: seu FB passa de -1 para -2 (desbalanceamento à direita).\n"
+        "3. Regra do slide: com FB = -2 e subárvore direita com FB <= 0 (FB(22) = -1), aplica-se a Rotação Esquerda Simples (RES) no nó 15.\n"
+        "4. Fórmulas de recálculo:\n"
+        "   FB_B_novo (nó 15) = -2 + 1 - min(-1, 0) = -2 + 1 - (-1) = 0\n"
+        "   FB_A_novo (nó 22) = -1 + 1 + max(0, 0) = -1 + 1 + 0 = 0\n"
+        "5. O nó 22 torna-se nova raiz com 15 à esquerda e 25 à direita, ambos com FB = 0."
+    ))
+
+    body_parts.append(make_heading("2.2 Remoção do Nó 5", 2))
+    body_parts.append(make_paragraph(
+        "O nó 5 tem dois filhos (2 e 8). Pela regra de remoção de ABP/AVL:\n"
+        "1. Substitui 5 pelo seu sucessor in-order (menor nó da subárvore direita), que é 8.\n"
+        "2. Remove a folha original 8 da subárvore direita.\n"
+        "3. Ao remover da subárvore direita de 8, calcula-se FB(8): he(2) - hd(vazio) = 1 - 0 = +1.\n"
+        "4. Regra de parada do slide do Prof. Robinson: 'Se FB(Vantecessor) != 0 pare'.\n"
+        "5. Como FB(8) = +1 != 0, a diminuição de altura não se propaga para a raiz 10, permanecendo FB(10) = 0."
     ))
 
     # Section 3: Código-Fonte Completo
-    body_parts.append(make_heading("3. Código-Fonte Completo (Java)", 1))
+    body_parts.append(make_heading("3. Código-Fonte Completo em Java", 1))
     body_parts.append(make_paragraph(
-        "O código foi desenvolvido em conformidade com as boas práticas de orientação a objetos, utilizando herança direta de ABP e tipagem estrita. Os blocos abaixo utilizam formatação monoespaçada (Consolas 9.5pt) com realce sintático no padrão da IDE Eclipse (palavras-chave em roxo/negrito, comentários em verde itálico, strings em azul)."
+        "O código-fonte foi desenvolvido utilizando herança estrita (ArvoreAVL estende ArvoreBinariaPesquisa, e NoAVL estende NoABP). Abaixo está o código completo formatado em fonte monoespaçada (Consolas 9.5pt) com o padrão de cores da IDE Eclipse."
     ))
 
     for fname in files:
-        body_parts.append(make_heading(f"Classe {fname}", 2))
+        body_parts.append(make_heading(f"Arquivo: {fname}", 2))
         body_parts.append(format_code_block(codes[fname]))
 
     # Section 4: Saída de Testes
-    body_parts.append(make_heading("4. Registro de Execução dos Testes no Terminal", 1))
+    body_parts.append(make_heading("4. Saída dos Testes de Execução", 1))
+    body_parts.append(make_paragraph(
+        "Abaixo constam os registros de execução obtidos no terminal pelo programa Main, cobrindo o exemplo da especificação e os exercícios do slide do Prof. Robinson Alves:"
+    ))
     terminal_output = """======================================================================
           SISTEMA DE TESTES - ÁRVORE AVL (HERANÇA DE ABP)            
-                   Aluna: Larissa Samara                              
+           Conforme Slides e Aulas do Prof. Robinson Alves            
+                         Aluna: Larissa Samara                        
 ======================================================================
 
 [PASSO 1] Inserindo chaves iniciais: 10, 5, 15, 2, 8, 22...
-
 Árvore resultante após inserções iniciais:
                                   10[0]
               5[0]                          15[-1]
     2[0]                8[0]                          22[0]
 
 [PASSO 2] Inserindo chave 25...
-Ao inserir 25 na subárvore direita de 22 (que é filho de 15):
- - 22 fica com FB = -1
- - 15 fica com FB = -2 (DESBALANCEAMENTO detectado!)
+Estado antes da rotação:
+                                  10[0]
+              5[0]                          15[-2]
+    2[0]                8[0]                          22[-1]
+                                                                25[0]
 
-Como FB(15) = -2 e FB(22) = -1 (sinais iguais negativos):
->> Rotação Simples para a Esquerda (S.E.) aplicada no nó 15.
-Aplicação das fórmulas de recálculo:
-  FB'(15) = FB(15) + 1 - min(FB(22), 0) = -2 + 1 - (-1) = 0
-  FB'(22) = FB(22) + 1 + max(FB'(15), 0) = -1 + 1 + 0 = 0
+>> Rotação Esquerda Simples (RES) aplicada no nó 15.
+Fórmulas do Slide do Prof. Robinson Alves:
+  FB_B_novo = FB_B + 1 - min(FB_A, 0) = -2 + 1 - (-1) = 0
+  FB_A_novo = FB_A + 1 + max(FB_B_novo, 0) = -1 + 1 + 0 = 0
 
-Árvore após rotação S.E. em 15:
+Árvore após rotação RES em 15:
                                   10[0]
               5[0]                                    22[0]
     2[0]                8[0]                15[0]               25[0]
 
 [PASSO 3] Removendo chave 5...
-Detalhe da implementação:
- 1. O nó 5 possui dois filhos (2 e 8).
- 2. Localiza o sucessor in-order: o menor nó da subárvore direita, que é o 8.
- 3. Copia a chave 8 para a posição do 5.
- 4. Remove o nó folha original 8 da subárvore direita.
- 5. A subárvore direita de 8 diminuiu de altura. Recalcula FB(8):
-    FB(8) = altura(esq=2) - altura(dir=vazio) = 1 - 0 = +1.
- 6. Como a altura total da subárvore enraizada em 8 permaneceu 2,
-    a alteração de altura NÃO se propaga para a raiz 10 (FB(10) continua 0).
-
+- Sucessor in-order localizado: 8
+- Recálculo de FB(8) = he(2) - hd(vazio) = 1 - 0 = +1
+- Regra do slide: 'Se FB(Vantecessor) != 0 pare'. Propagação cessa no nó 8.
 Árvore resultante após remover 5:
                         10[0]
               8[1]                          22[0]
     2[0]                          15[0]               25[0]
-
-======================================================================
->> Demonstração concluída com 100% de sucesso!"""
+======================================================================"""
     body_parts.append(format_code_block(terminal_output))
 
-    # Assemble Document XML
     doc_xml = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body>

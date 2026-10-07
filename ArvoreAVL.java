@@ -1,21 +1,25 @@
 /**
- * Implementação da Árvore AVL através de herança de ArvoreBinariaPesquisa (ABP).
+ * Implementação da Árvore AVL através de herança de ArvoreBinariaPesquisa (ABP),
+ * estritamente alinhada ao material e slides do Prof. Robinson Alves (árvoreAVL.pdf).
  *
- * Todas as operações básicas (busca, inserção, remoção) rodam estritamente em O(log n).
- * O recálculo dos fatores de balanceamento após as rotações é feito em O(1) utilizando
- * as fórmulas matemáticas deduzidas em aula.
- *
- * Convenção do Fator de Balanceamento (FB):
- * FB(p) = altura(subárvore esquerda) - altura(subárvore direita)
- *
- * Fórmulas de Atualização de FB após Rotação Simples:
- * 1. Rotação Simples para a Esquerda (S.E.):
- *    FB'(A) = FB(A) + 1 - min(FB(B), 0)
- *    FB'(B) = FB(B) + 1 + max(FB'(A), 0)
- *
- * 2. Rotação Simples para a Direita (S.D.):
- *    FB'(A) = FB(A) - 1 - max(FB(B), 0)
- *    FB'(B) = FB(B) - 1 + min(FB'(A), 0)
+ * Características principais:
+ * 1. Herança direta de ArvoreBinariaPesquisa.
+ * 2. Operações básicas em O(log n).
+ * 3. Fator de Balanceamento:
+ *    FB(v) = he(v) - hd(v)
+ *    +1: subárvore esquerda mais alta que a direita
+ *     0: subárvore esquerda igual a direita
+ *    -1: subárvore direita mais alta do que a esquerda
+ * 4. Fórmulas exatas de recálculo dos slides do Prof. Robinson Alves:
+ *    - Rotação Esquerda Simples (RES):
+ *        FB_B_novo = FB_B + 1 - min(FB_A, 0);
+ *        FB_A_novo = FB_A + 1 + max(FB_B_novo, 0);
+ *    - Rotação Simples a Direita (RSD):
+ *        FB_B_novo = FB_B - 1 - max(FB_A, 0);
+ *        FB_A_novo = FB_A - 1 + min(FB_B_novo, 0);
+ * 5. Critérios de parada na atualização do FB dos antecessores:
+ *    - Inserção: "Se FB(Vantecessor) == 0 pare"
+ *    - Remoção:  "Se FB(Vantecessor) != 0 pare"
  *
  * @author Larissa Samara
  */
@@ -47,47 +51,45 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
         if (chave < atual.chave) {
             atual.esquerdo = inserirAVL((NoAVL) atual.esquerdo, chave);
             if (this.mudouAltura) {
+                // Inserção na ArvEsq: soma +1 ao FB conforme tabela do slide
                 switch (atual.fb) {
                     case -1:
-                        // Tinha subárvore direita mais alta; inseriu na esquerda -> agora equilibrado
                         atual.fb = 0;
-                        this.mudouAltura = false;
+                        this.mudouAltura = false; // "Se FB(Vantecessor) == 0 pare"
                         break;
                     case 0:
-                        // Estava equilibrado; inseriu na esquerda -> subárvore esquerda ficou mais alta
                         atual.fb = 1;
-                        this.mudouAltura = true;
+                        this.mudouAltura = true;  // Continua propagando
                         break;
                     case 1:
-                        // Já estava +1; inseriu na esquerda -> FB iria para +2 (desbalanceamento)
+                        // FB iria para +2 (desbalanceamento)
                         atual = balancearEsquerda(atual);
-                        this.mudouAltura = false;
+                        this.mudouAltura = false; // Após rotação na inserção, altura volta à original: pare
                         break;
                 }
             }
         } else if (chave > atual.chave) {
             atual.direito = inserirAVL((NoAVL) atual.direito, chave);
             if (this.mudouAltura) {
+                // Inserção na ArvDir: subtrai -1 do FB conforme tabela do slide
                 switch (atual.fb) {
                     case 1:
-                        // Tinha subárvore esquerda mais alta; inseriu na direita -> agora equilibrado
                         atual.fb = 0;
-                        this.mudouAltura = false;
+                        this.mudouAltura = false; // "Se FB(Vantecessor) == 0 pare"
                         break;
                     case 0:
-                        // Estava equilibrado; inseriu na direita -> subárvore direita ficou mais alta
                         atual.fb = -1;
-                        this.mudouAltura = true;
+                        this.mudouAltura = true;  // Continua propagando
                         break;
                     case -1:
-                        // Já estava -1; inseriu na direita -> FB iria para -2 (desbalanceamento)
+                        // FB iria para -2 (desbalanceamento)
                         atual = balancearDireita(atual);
-                        this.mudouAltura = false;
+                        this.mudouAltura = false; // Após rotação na inserção, altura volta à original: pare
                         break;
                 }
             }
         } else {
-            // Chave duplicada: não permite duplicidade
+            // Chave duplicada: não permite duplicatas na árvore
             this.mudouAltura = false;
         }
 
@@ -95,128 +97,150 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
     }
 
     /**
-     * Trata o desbalanceamento após inserção na subárvore esquerda (FB iria para +2).
+     * Trata o desbalanceamento após inserção ou remoção na subárvore esquerda (FB iria para +2).
+     * Regra do slide do Prof. Robinson Alves:
+     * - Se FB >= 0 na subárvore esquerda: Rotação Simples a Direita (RSD)
+     * - Se FB < 0 na subárvore esquerda: Rotação Dupla a Direita (RDD)
      */
     private NoAVL balancearEsquerda(NoAVL pivo) {
         NoAVL filhoEsq = (NoAVL) pivo.esquerdo;
         if (filhoEsq.fb >= 0) {
-            // Sinais iguais (+2 e +1): Rotação Simples à Direita (S.D.)
-            return rotacaoSimplesDireita(pivo);
+            return rotacaoDireitaSimples(pivo);
         } else {
-            // Sinais opostos (+2 e -1): Rotação Dupla à Direita (D.D.)
             return rotacaoDuplaDireita(pivo);
         }
     }
 
     /**
-     * Trata o desbalanceamento após inserção na subárvore direita (FB iria para -2).
+     * Trata o desbalanceamento após inserção ou remoção na subárvore direita (FB iria para -2).
+     * Regra do slide do Prof. Robinson Alves:
+     * - Se FB <= 0 na subárvore direita: Rotação Esquerda Simples (RES)
+     * - Se FB > 0 na subárvore direita: Rotação Dupla a Esquerda (RDE)
      */
     private NoAVL balancearDireita(NoAVL pivo) {
         NoAVL filhoDir = (NoAVL) pivo.direito;
         if (filhoDir.fb <= 0) {
-            // Sinais iguais (-2 e -1): Rotação Simples à Esquerda (S.E.)
-            return rotacaoSimplesEsquerda(pivo);
+            return rotacaoEsquerdaSimples(pivo);
         } else {
-            // Sinais opostos (-2 e +1): Rotação Dupla à Esquerda (D.E.)
             return rotacaoDuplaEsquerda(pivo);
         }
     }
 
     /**
-     * Rotação Simples para a Esquerda (S.E.).
+     * Rotação Esquerda Simples (RES).
+     * Conforme os slides do Prof. Robinson Alves:
      *
-     * Estrutura:
-     *      A                 B
-     *       \               / \
-     *        B     ==>     A   T3
-     *       / \             \
-     *      T2  T3           T2
+     * Estrutura inicial:
+     *        B (desbalanceado, FB = -2)
+     *         \
+     *          A (filho direito, FB <= 0)
+     *         / \
+     *        T2  T3
      *
-     * Fórmulas de recálculo:
-     * FB'(A) = FB(A) + 1 - min(FB(B), 0)
-     * FB'(B) = FB(B) + 1 + max(FB'(A), 0)
+     * Passos do slide:
+     * 1. Guarde a subárvore direita (A).
+     * 2. Troque a subárvore guardada pela subárvore esquerda da árvore guardada (B.direito = A.esquerdo).
+     * 3. Ponha na subárvore esquerda da subárvore guardada a árvore restante (A.esquerdo = B).
+     * 4. Atualize o FB pelas fórmulas:
+     *      FB_B_novo = FB_B + 1 - min(FB_A, 0);
+     *      FB_A_novo = FB_A + 1 + max(FB_B_novo, 0);
      *
-     * @param A Nó desbalanceado (pivô)
-     * @return Nova raiz da subárvore (B)
+     * @param B Nó desbalanceado (pivô original)
+     * @return Nova raiz da subárvore (A)
      */
-    public NoAVL rotacaoSimplesEsquerda(NoAVL A) {
-        NoAVL B = (NoAVL) A.direito;
-        A.direito = B.esquerdo;
-        B.esquerdo = A;
+    public NoAVL rotacaoEsquerdaSimples(NoAVL B) {
+        NoAVL A = (NoAVL) B.direito;
+        B.direito = A.esquerdo;
+        A.esquerdo = B;
 
-        // Se A.fb estava em -1 no momento que detectou desbalanceamento na inserção,
+        // Se B.fb estava em -1 no momento da detecção de aumento à direita,
         // o valor efetivo antes da rotação é -2.
-        int fbA_antes = (A.fb == -1) ? -2 : A.fb;
+        int FB_B = (B.fb == -1) ? -2 : B.fb;
+        int FB_A = A.fb;
 
-        int novoFbA = fbA_antes + 1 - Math.min(B.fb, 0);
-        int novoFbB = B.fb + 1 + Math.max(novoFbA, 0);
+        // Fórmulas exatas do slide do Prof. Robinson Alves:
+        int FB_B_novo = FB_B + 1 - Math.min(FB_A, 0);
+        int FB_A_novo = FB_A + 1 + Math.max(FB_B_novo, 0);
 
-        A.fb = novoFbA;
-        B.fb = novoFbB;
+        B.fb = FB_B_novo;
+        A.fb = FB_A_novo;
 
-        return B;
+        return A;
     }
 
     /**
-     * Rotação Simples para a Direita (S.D.).
+     * Rotação Simples a Direita (RSD).
+     * Conforme os slides do Prof. Robinson Alves (simétrica à RES):
      *
-     * Estrutura:
-     *        A               B
-     *       /               / \
-     *      B       ==>     T1  A
-     *     / \                 /
-     *    T1  T2              T2
+     * Estrutura inicial:
+     *          B (desbalanceado, FB = +2)
+     *         /
+     *        A (filho esquerdo, FB >= 0)
+     *       / \
+     *      T1  T2
      *
-     * Fórmulas de recálculo:
-     * FB'(A) = FB(A) - 1 - max(FB(B), 0)
-     * FB'(B) = FB(B) - 1 + min(FB'(A), 0)
+     * Fórmulas do slide:
+     *   FB_B_novo = FB_B - 1 - max(FB_A, 0);
+     *   FB_A_novo = FB_A - 1 + min(FB_B_novo, 0);
      *
-     * @param A Nó desbalanceado (pivô)
-     * @return Nova raiz da subárvore (B)
+     * @param B Nó desbalanceado (pivô original)
+     * @return Nova raiz da subárvore (A)
      */
-    public NoAVL rotacaoSimplesDireita(NoAVL A) {
-        NoAVL B = (NoAVL) A.esquerdo;
-        A.esquerdo = B.direito;
-        B.direito = A;
+    public NoAVL rotacaoDireitaSimples(NoAVL B) {
+        NoAVL A = (NoAVL) B.esquerdo;
+        B.esquerdo = A.direito;
+        A.direito = B;
 
-        // Se A.fb estava em +1 no momento que detectou desbalanceamento na inserção,
-        // o valor efetivo antes da rotação é +2.
-        int fbA_antes = (A.fb == 1) ? 2 : A.fb;
+        int FB_B = (B.fb == 1) ? 2 : B.fb;
+        int FB_A = A.fb;
 
-        int novoFbA = fbA_antes - 1 - Math.max(B.fb, 0);
-        int novoFbB = B.fb - 1 + Math.min(novoFbA, 0);
+        // Fórmulas exatas do slide do Prof. Robinson Alves:
+        int FB_B_novo = FB_B - 1 - Math.max(FB_A, 0);
+        int FB_A_novo = FB_A - 1 + Math.min(FB_B_novo, 0);
 
-        A.fb = novoFbA;
-        B.fb = novoFbB;
+        B.fb = FB_B_novo;
+        A.fb = FB_A_novo;
 
-        return B;
+        return A;
     }
 
     /**
-     * Rotação Dupla para a Esquerda (D.E. ou Direita-Esquerda).
-     * Primeiro executa uma rotação simples à direita no filho direito,
-     * e em seguida uma rotação simples à esquerda no pai.
+     * Rotação Dupla a Esquerda (RDE).
+     * Passos conforme o slide do Prof. Robinson Alves:
+     * 1. Efetua-se uma rotação simples direita na subárvore direita do nó desbalanceado (RSD).
+     * 2. Realiza-se uma rotação simples esquerda no nó desbalanceado (RES).
      *
-     * @param A Nó desbalanceado
+     * @param B Nó desbalanceado
      * @return Nova raiz da subárvore
      */
-    public NoAVL rotacaoDuplaEsquerda(NoAVL A) {
-        A.direito = rotacaoSimplesDireita((NoAVL) A.direito);
-        return rotacaoSimplesEsquerda(A);
+    public NoAVL rotacaoDuplaEsquerda(NoAVL B) {
+        B.direito = rotacaoDireitaSimples((NoAVL) B.direito);
+        return rotacaoEsquerdaSimples(B);
     }
 
     /**
-     * Rotação Dupla para a Direita (D.D. ou Esquerda-Direita).
-     * Primeiro executa uma rotação simples à esquerda no filho esquerdo,
-     * e em seguida uma rotação simples à direita no pai.
+     * Rotação Dupla a Direita (RDD).
+     * Passos conforme o slide do Prof. Robinson Alves:
+     * 1. Efetuar uma rotação simples esquerda na subárvore esquerda do nó desbalanceado (RES).
+     * 2. Realizar uma rotação simples direita no nó desbalanceado (RSD).
      *
-     * @param A Nó desbalanceado
+     * @param B Nó desbalanceado
      * @return Nova raiz da subárvore
      */
-    public NoAVL rotacaoDuplaDireita(NoAVL A) {
-        A.esquerdo = rotacaoSimplesEsquerda((NoAVL) A.esquerdo);
-        return rotacaoSimplesDireita(A);
+    public NoAVL rotacaoDuplaDireita(NoAVL B) {
+        B.esquerdo = rotacaoEsquerdaSimples((NoAVL) B.esquerdo);
+        return rotacaoDireitaSimples(B);
     }
+
+    // Aliases utilizando os acrônimos dos slides (RES, RSD, RDE, RDD)
+    public NoAVL RES(NoAVL B) { return rotacaoEsquerdaSimples(B); }
+    public NoAVL RSD(NoAVL B) { return rotacaoDireitaSimples(B); }
+    public NoAVL RDE(NoAVL B) { return rotacaoDuplaEsquerda(B); }
+    public NoAVL RDD(NoAVL B) { return rotacaoDuplaDireita(B); }
+
+    // Aliases para compatibilidade de nomenclaturas
+    public NoAVL rotacaoSimplesEsquerda(NoAVL B) { return rotacaoEsquerdaSimples(B); }
+    public NoAVL rotacaoSimplesDireita(NoAVL B) { return rotacaoDireitaSimples(B); }
 
     /**
      * Remoção com balanceamento AVL em O(log n).
@@ -237,15 +261,17 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
         if (chave < atual.chave) {
             atual.esquerdo = removerAVL((NoAVL) atual.esquerdo, chave);
             if (this.mudouAltura) {
+                // Remoção na ArvEsq: subtrai -1 do FB conforme tabela do slide
                 atual = aposRemocaoEsquerda(atual);
             }
         } else if (chave > atual.chave) {
             atual.direito = removerAVL((NoAVL) atual.direito, chave);
             if (this.mudouAltura) {
+                // Remoção na ArvDir: soma +1 ao FB conforme tabela do slide
                 atual = aposRemocaoDireita(atual);
             }
         } else {
-            // Encontrou o nó a remover
+            // Encontrou o nó a ser removido
             if (atual.esquerdo == null) {
                 this.mudouAltura = true;
                 return (NoAVL) atual.direito;
@@ -267,29 +293,27 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
 
     /**
      * Trata o ajuste de FB e eventuais rotações quando a subárvore esquerda diminui de altura.
+     * Conforme tabela do slide: ArvEsq -1, "Se FB(Vantecessor) != 0 pare".
      */
     private NoAVL aposRemocaoEsquerda(NoAVL atual) {
         switch (atual.fb) {
             case 1:
-                // Tinha esquerda mais alta (+1); a esquerda diminuiu -> agora equilibrado (0)
                 atual.fb = 0;
-                this.mudouAltura = true;
+                this.mudouAltura = true;  // Altura diminuiu, continua propagando
                 break;
             case 0:
-                // Estava equilibrado (0); a esquerda diminuiu -> subárvore direita ficou mais alta (-1)
                 atual.fb = -1;
-                this.mudouAltura = false; // Altura máxima da subárvore não diminuiu
+                this.mudouAltura = false; // "Se FB(Vantecessor) != 0 pare"
                 break;
             case -1:
-                // Já tinha subárvore direita mais alta (-1); esquerda diminuiu -> desbalanceou (iria para -2)
-                atual.fb = -2;
+                // FB iria para -2: desbalanceou à direita
                 NoAVL dir = (NoAVL) atual.direito;
                 if (dir.fb <= 0) {
-                    // Rotação Simples à Esquerda (S.E.)
-                    atual = rotacaoSimplesEsquerda(atual);
-                    this.mudouAltura = (atual.fb == 0);
+                    // FB <= 0 na subárvore direita: RES
+                    atual = rotacaoEsquerdaSimples(atual);
+                    this.mudouAltura = (atual.fb == 0); // Se virou 0 encolheu; se != 0 pare
                 } else {
-                    // Rotação Dupla à Esquerda (D.E.)
+                    // FB > 0 na subárvore direita: RDE
                     atual = rotacaoDuplaEsquerda(atual);
                     this.mudouAltura = true;
                 }
@@ -300,29 +324,27 @@ public class ArvoreAVL extends ArvoreBinariaPesquisa {
 
     /**
      * Trata o ajuste de FB e eventuais rotações quando a subárvore direita diminui de altura.
+     * Conforme tabela do slide: ArvDir +1, "Se FB(Vantecessor) != 0 pare".
      */
     private NoAVL aposRemocaoDireita(NoAVL atual) {
         switch (atual.fb) {
             case -1:
-                // Tinha direita mais alta (-1); a direita diminuiu -> agora equilibrado (0)
                 atual.fb = 0;
-                this.mudouAltura = true;
+                this.mudouAltura = true;  // Altura diminuiu, continua propagando
                 break;
             case 0:
-                // Estava equilibrado (0); a direita diminuiu -> subárvore esquerda ficou mais alta (+1)
                 atual.fb = 1;
-                this.mudouAltura = false; // Altura máxima da subárvore não diminuiu
+                this.mudouAltura = false; // "Se FB(Vantecessor) != 0 pare"
                 break;
             case 1:
-                // Já tinha subárvore esquerda mais alta (+1); direita diminuiu -> desbalanceou (iria para +2)
-                atual.fb = 2;
+                // FB iria para +2: desbalanceou à esquerda
                 NoAVL esq = (NoAVL) atual.esquerdo;
                 if (esq.fb >= 0) {
-                    // Rotação Simples à Direita (S.D.)
-                    atual = rotacaoSimplesDireita(atual);
-                    this.mudouAltura = (atual.fb == 0);
+                    // FB >= 0 na subárvore esquerda: RSD
+                    atual = rotacaoDireitaSimples(atual);
+                    this.mudouAltura = (atual.fb == 0); // Se virou 0 encolheu; se != 0 pare
                 } else {
-                    // Rotação Dupla à Direita (D.D.)
+                    // FB < 0 na subárvore esquerda: RDD
                     atual = rotacaoDuplaDireita(atual);
                     this.mudouAltura = true;
                 }
